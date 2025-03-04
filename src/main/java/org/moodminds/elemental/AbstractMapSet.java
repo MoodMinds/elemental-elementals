@@ -99,7 +99,7 @@ public abstract class AbstractMapSet<E, M extends Map<E, E>>
 
             @Override public boolean hasNext() { return iterator.hasNext(); }
             @Override public E next() { return iterator.next(); }
-            @Override public void remove() { iterator.remove(); }
+            @Override public void remove() { keysIterator.remove(); }
             @Override public void forEachRemaining(Consumer<? super E> action) {
                 iterator.forEachRemaining(action); }
         };

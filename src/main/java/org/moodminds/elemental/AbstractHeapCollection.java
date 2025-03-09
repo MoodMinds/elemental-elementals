@@ -125,7 +125,7 @@ public abstract class AbstractHeapCollection<E, M extends Map<E, Object>>
         return new Iterator<E>() {
 
             E current; final Iterator<E> iterator = bucketIterator(bucket, AbstractHeapCollection.super.iterator(bucket, bucketIterator),
-                    () -> { E element = bucket.iterator().next(); map.put(element, element); }, () -> map.remove(current));
+                    element -> map.put(element, element), () -> map.remove(current));
 
             @Override public boolean hasNext() { return iterator.hasNext(); }
             @Override public E next() { return current = iterator.next(); }
@@ -154,11 +154,8 @@ public abstract class AbstractHeapCollection<E, M extends Map<E, Object>>
                 @Override public boolean hasNext() { return entriesIterator.hasNext(); }
                 @Override public Entry<E, Object> next() { bucket = null; bucketIterator = null; return entry = entriesIterator.next(); }
 
-            }, bucket -> this.bucketIterator = bucketIterator(bucket, bucketIteration.apply(this.bucket = bucket),
-                            () -> entry.setValue(bucket.iterator().next()), entriesIterator::remove),
-                    () -> {
-                if (removal != null) removal.run();
-                if (bucketIterator != null) bucketIterator.remove(); else entriesIterator.remove();
+            }, bucket -> this.bucketIterator = bucketIterator(bucket, bucketIteration.apply(this.bucket = bucket), entry::setValue, entriesIterator::remove),
+                    () -> { if (removal != null) removal.run(); if (bucketIterator != null) bucketIterator.remove(); else entriesIterator.remove();
             });
 
             @Override public boolean hasNext() { return iterator.hasNext(); }
@@ -309,26 +306,31 @@ public abstract class AbstractHeapCollection<E, M extends Map<E, Object>>
     protected abstract void count(int number);
 
     /**
-     * Return an iterator that iterates over the elements of the specified bucket.
-     * Provide additional functionality to handle bucket-specific operations,
-     * including element removal and triggering bucket collapse or removal when necessary.
+     * Return an {@link Iterator} for iterating over the elements of the given {@code bucket}.
+     * <p>
+     * Delegates to the standard iteration mechanism of the parent class while providing additional behavior during element removal:
+     * <ul>
+     *     <li>When an element is removed, if the bucket contains only one remaining element,
+     *         that element is passed to {@code bucketCollapse} {@link Consumer}.</li>
+     *     <li>If the bucket becomes empty after removal, {@code bucketRemoval} {@link Runnable} is executed.</li>
+     * </ul>
+     * </p>
      *
      * @param bucket the bucket containing the elements to iterate over
-     * @param bucketIterator the iterator to be used for iterating over the bucket's elements
-     * @param bucketCollapse the {@link Runnable} to be run when the bucket collapses (i.e., when only one element remains)
-     * @param bucketRemoval the {@link Runnable} to be run when the bucket is removed (i.e., when the bucket no longer contains any elements)
-     * @return an {@link Iterator} that iterates over the bucket's elements and supports element removal and bucket management
+     * @param bucketIterator the iterator over the elements within the bucket
+     * @param bucketCollapse the action to perform when the bucket is reduced to a single element
+     * @param bucketRemoval the action to perform when the bucket becomes empty
+     * @return an iterator over the elements in the given bucket
      */
-    private Iterator<E> bucketIterator(Bucket<E> bucket, Iterator<E> bucketIterator, Runnable bucketCollapse, Runnable bucketRemoval) {
+    private Iterator<E> bucketIterator(Bucket<E> bucket, Iterator<E> bucketIterator, Consumer<E> bucketCollapse, Runnable bucketRemoval) {
         return new Iterator<E>() {
 
             final Iterator<E> iterator = AbstractHeapCollection.super.iterator(bucket, bucketIterator);
 
             @Override public boolean hasNext() { return iterator.hasNext(); }
             @Override public E next() { return iterator.next(); }
-            @Override public void remove() {
-                bucketIterator.remove();
-                if (bucket.size() == 1) bucketCollapse.run();
+            @Override public void remove() { bucketIterator.remove();
+                if (bucket.size() == 1) bucketCollapse.accept(bucket.iterator().next());
                 else if (!bucket.contains()) bucketRemoval.run(); }
             @Override public void forEachRemaining(Consumer<? super E> action) {
                 iterator.forEachRemaining(action); }

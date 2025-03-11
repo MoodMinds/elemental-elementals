@@ -101,8 +101,6 @@ public class ArraySequence<E> extends AbstractArraySequence<E> {
      * A subsequence representation of an array-based sequence.
      * This class extends {@link AbstractTailedSequence} and provides functionality
      * for efficiently accessing and manipulating a contiguous subset of elements.
-     *
-     * @param <E> the type of elements in the sequence
      */
     protected class ArraySubSequence extends AbstractTailedSequence<E>
             implements Serializable, RandomGet {

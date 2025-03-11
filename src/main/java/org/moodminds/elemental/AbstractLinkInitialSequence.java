@@ -131,8 +131,6 @@ public abstract class AbstractLinkInitialSequence<E> extends AbstractLinkSequenc
      * This class extends {@link AbstractSequence} and provides a serializable
      * representation of a contiguous segment of the original linked sequence.
      * </p>
-     *
-     * @param <E> the type of elements in this subsequence
      */
     protected class LinkSubSequence extends AbstractSequence<E> implements Serializable {
 

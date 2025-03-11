@@ -8,7 +8,6 @@ import static java.util.Objects.requireNonNull;
  * Wrapping and converting {@link java.util.ListIterator} implementation of the {@link ListIterator}.
  *
  * @param <E> the type of elements
- * @param <I> the type of source wrapped {@link java.util.ListIterator}
  */
 public class WrapListIterator<E> implements ListIterator<E> {
 

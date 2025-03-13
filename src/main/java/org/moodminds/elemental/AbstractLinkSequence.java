@@ -152,7 +152,7 @@ public abstract class AbstractLinkSequence<E, L extends Link<E, L>>
      */
     protected SequenceIterator<E> iterator(L previous, int index, int size, Runnable removal) {
         return new AbstractLinkSequenceIterator<E, L>(previous, index, removal) {
-            @Override protected boolean hasPreviousLink() { return index > 0; }
+            @Override protected boolean hasPreviousLink() { return super.hasPreviousLink() && index > 0; }
             @Override protected boolean hasNext(L link) { return index < size; }
             @Override protected L next(L link) { return link != null ? link.next : head; }
             @Override protected E item(L link) { return link.item; }

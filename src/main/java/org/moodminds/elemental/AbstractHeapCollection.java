@@ -236,22 +236,14 @@ public abstract class AbstractHeapCollection<E, M extends Map<E, Object>>
 
             final int expectedMod = totalMod();
 
-            @Override public boolean tryAdvance(Consumer<? super E> action) {
-                checkMod(expectedMod); return spliterator.tryAdvance(action); }
-            @Override public long estimateSize() {
-                return spliterator.estimateSize(); }
-            @Override public long getExactSizeIfKnown() {
-                return spliterator.getExactSizeIfKnown(); }
-            @Override public int characteristics() {
-                return spliterator.characteristics() & ~IMMUTABLE; }
-            @Override public boolean hasCharacteristics(int characteristics) {
-                return spliterator.hasCharacteristics(characteristics); }
-            @Override public Comparator<? super E> getComparator() {
-                return spliterator.getComparator(); }
-            @Override public Spliterator<E> trySplit() {
-                return ofNullable(spliterator.trySplit())
-                        .map(AbstractHeapCollection.this::collectionSpliterator)
-                        .orElse(null); }
+            @Override public boolean tryAdvance(Consumer<? super E> action) { checkMod(expectedMod); return spliterator.tryAdvance(action); }
+            @Override public long estimateSize() { return spliterator.estimateSize(); }
+            @Override public long getExactSizeIfKnown() { return spliterator.getExactSizeIfKnown(); }
+            @Override public int characteristics() { return spliterator.characteristics() & ~IMMUTABLE; }
+            @Override public boolean hasCharacteristics(int characteristics) { return spliterator.hasCharacteristics(characteristics); }
+            @Override public Comparator<? super E> getComparator() { return spliterator.getComparator(); }
+            @Override public Spliterator<E> trySplit() { return ofNullable(spliterator.trySplit())
+                    .map(AbstractHeapCollection.this::collectionSpliterator).orElse(null); }
 
             @Override public void forEachRemaining(Consumer<? super E> action) {
                 requireNonNull(action); checkMod(expectedMod); spliterator.forEachRemaining(element -> {

@@ -108,8 +108,7 @@ public class HashContainer<E> extends AbstractHeapInitialContainer<E, Map<E, Obj
 
     @Override
     protected void serialize(ObjectOutputStream output) throws Exception {
-        output.writeInt(size);
-        for (E e : this)
+        output.writeInt(size); for (E e : this)
             output.writeObject(e);
     }
 

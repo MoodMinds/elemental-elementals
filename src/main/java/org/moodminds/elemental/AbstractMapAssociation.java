@@ -9,7 +9,6 @@ import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static org.moodminds.sneaky.Cast.cast;
 
@@ -57,7 +56,7 @@ public abstract class AbstractMapAssociation<K, V, KV extends KeyValue<? extends
     @Override public V getOrDefault(Object key, V defaultValue) {
         return map.getOrDefault(key, defaultValue); }
     @Override public Iterator<KV> iterator() {
-        return new AssociationIterator(map.entrySet().iterator()); }
+        return iterator(map.entrySet().iterator()); }
     @Override public Spliterator<KV> spliterator() {
         return spliterator(map.entrySet().spliterator()); }
     @Override public Stream<KV> stream() {
@@ -70,13 +69,42 @@ public abstract class AbstractMapAssociation<K, V, KV extends KeyValue<? extends
         return new ValuesContainer(); }
 
     /**
+     * Return {@link Iterator} of {@link KV key-values} by the given {@link Iterator} of {@link Entry entries}.
+     *
+     * @param entriesIterator the given {@link Iterator} of {@link Entry entries}.
+     * @return {@link Iterator} of {@link KV key-values} by the given {@link Iterator} of {@link Entry entries}
+     */
+    protected Iterator<KV> iterator(Iterator<Entry<K, V>> entriesIterator) {
+        return new Iterator<KV>() {
+            @Override public boolean hasNext() { return entriesIterator.hasNext(); }
+            @Override public KV next() { return entry(entriesIterator.next()); }
+            @Override public void forEachRemaining(Consumer<? super KV> action) {
+                entriesIterator.forEachRemaining(entry -> action.accept(entry(entry))); }
+        };
+    }
+
+    /**
      * Return {@link Spliterator} of {@link KV key-values} by the given {@link Spliterator} of {@link Entry entries}.
      *
-     * @param spliterator the given {@link Spliterator} of {@link Entry entries}.
+     * @param entriesSpliterator the given {@link Spliterator} of {@link Entry entries}.
      * @return {@link Spliterator} of {@link KV key-values} by the given {@link Spliterator} of {@link Entry entries}
      */
-    protected Spliterator<KV> spliterator(Spliterator<Entry<K, V>> spliterator) {
-        return new AssociationSpliterator(spliterator);
+    protected Spliterator<KV> spliterator(Spliterator<Entry<K, V>> entriesSpliterator) {
+        return new Spliterator<KV>() {
+
+            @Override public boolean tryAdvance(Consumer<? super KV> action) { return entriesSpliterator.tryAdvance(consumer(action)); }
+            @Override public void forEachRemaining(Consumer<? super KV> action) { entriesSpliterator.forEachRemaining(consumer(action)); }
+            @Override public long estimateSize() { return entriesSpliterator.estimateSize(); }
+            @Override public long getExactSizeIfKnown() { return entriesSpliterator.getExactSizeIfKnown(); }
+            @Override public int characteristics() { return entriesSpliterator.characteristics() | IMMUTABLE; }
+            @Override public Spliterator<KV> trySplit() { return ofNullable(entriesSpliterator.trySplit())
+                    .map(AbstractMapAssociation.this::spliterator).orElse(null); }
+            @Override public Comparator<? super KV> getComparator() { return ofNullable(entriesSpliterator.getComparator())
+                    .<Comparator<KV>>map(comp -> (kv1, kv2) -> comp.compare(entry(kv1), entry(kv2))).orElse(null); }
+
+            private Consumer<Entry<K, V>> consumer(Consumer<? super KV> action) {
+                return entry -> action.accept(entry(entry)); }
+        };
     }
 
     /**
@@ -95,55 +123,6 @@ public abstract class AbstractMapAssociation<K, V, KV extends KeyValue<? extends
      */
     protected abstract Entry<K, V> entry(KV entry);
 
-
-    /**
-     * Map Association entries {@link Iterator} implementation.
-     */
-    protected class AssociationIterator implements Iterator<KV> {
-
-        protected final Iterator<Entry<K, V>> iterator;
-
-        protected AssociationIterator(Iterator<Entry<K, V>> iterator) {
-            this.iterator = iterator; }
-
-        @Override public boolean hasNext() {
-            return iterator.hasNext(); }
-        @Override public KV next() {
-            return entry(iterator.next()); }
-        @Override public void forEachRemaining(Consumer<? super KV> action) {
-            requireNonNull(action); iterator.forEachRemaining(entry ->
-                    action.accept(entry(entry))); }
-    }
-
-    /**
-     * Map Association entries {@link Spliterator} implementation.
-     */
-    protected class AssociationSpliterator implements Spliterator<KV> {
-
-        protected final Spliterator<Entry<K, V>> spliterator;
-
-        protected AssociationSpliterator(Spliterator<Entry<K, V>> spliterator) {
-            this.spliterator = spliterator; }
-
-        @Override public boolean tryAdvance(Consumer<? super KV> action) {
-            return spliterator.tryAdvance(consumer(action)); }
-        @Override public void forEachRemaining(Consumer<? super KV> action) {
-            spliterator.forEachRemaining(consumer(action)); }
-        @Override public Spliterator<KV> trySplit() {
-            return ofNullable(spliterator.trySplit()).map(AbstractMapAssociation.this::spliterator).orElse(null); }
-        @Override public long estimateSize() {
-            return spliterator.estimateSize(); }
-        @Override public long getExactSizeIfKnown() {
-            return spliterator.getExactSizeIfKnown(); }
-        @Override public int characteristics() {
-            return spliterator.characteristics() | IMMUTABLE; }
-        @Override public Comparator<? super KV> getComparator() {
-            return ofNullable(spliterator.getComparator()).<Comparator<KV>>map(comp -> (kv1, kv2) ->
-                    comp.compare(entry(kv1), entry(kv2))).orElse(null); }
-
-        private Consumer<Entry<K, V>> consumer(Consumer<? super KV> action) {
-            return entry -> action.accept(entry(entry)); }
-    }
 
     /**
      * Map Association keys view implementation.

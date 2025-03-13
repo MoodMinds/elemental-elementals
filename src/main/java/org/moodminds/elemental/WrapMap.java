@@ -2,6 +2,7 @@ package org.moodminds.elemental;
 
 import org.moodminds.sneaky.Cast;
 
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -11,6 +12,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -98,8 +100,6 @@ public class WrapMap<K, V, M extends java.util.Map<K, V>>
         return WrapCollection.wrap(map.values()); }
     @Override public Set<java.util.Map.Entry<K, V>> entrySet() {
         return new WrapEntrySet(map.entrySet()); }
-    @Override public Iterator<Map.Entry<K, V>> iterator() {
-        return new WrapIterator(map.entrySet().iterator()); }
 
     @Override public int hashCode() {
         return map.hashCode(); }
@@ -107,13 +107,16 @@ public class WrapMap<K, V, M extends java.util.Map<K, V>>
         return this == obj || (obj instanceof WrapMap
                 && map.equals(((WrapMap<?, ?, ?>) obj).map)) || map.equals(obj); }
 
+    @Override protected Entry<K, V> entry(java.util.Map.Entry<K, V> entry) {
+        return WrapEntry.wrap(entry); }
+    @Override protected java.util.Map.Entry<K, V> entry(Entry<K, V> entry) {
+        return entry; }
+
     @Override protected String toStringThis() {
         return "(this Map)"; }
 
-    @Override protected Spliterator<Entry<K, V>> spliterator(Spliterator<java.util.Map.Entry<K, V>> spliterator) {
-        return new WrapSpliterator(spliterator); }
-
-    @Override protected Iterator<Map.Entry<K, V>> iterator(K k, V v, boolean present) {
+    @Override
+    protected Iterator<Map.Entry<K, V>> iterator(K k, V v, boolean present) {
         return new Object() {
 
             K key = k; V value = v; boolean evicted; Iterator<?> modCheckIterator = map.entrySet().iterator();
@@ -182,12 +185,44 @@ public class WrapMap<K, V, M extends java.util.Map<K, V>>
                         iterator.remove(); modCheckIterator = map.entrySet().iterator(); }
                 };
             }
-        }.iterator(); }
+        }.iterator();
+    }
 
-    @Override protected Entry<K, V> entry(java.util.Map.Entry<K, V> entry) {
-        return WrapEntry.wrap(entry); }
-    @Override protected java.util.Map.Entry<K, V> entry(Entry<K, V> entry) {
-        return entry; }
+    @Override
+    protected Iterator<Entry<K, V>> iterator(Iterator<java.util.Map.Entry<K, V>> entriesIterator) {
+        return new Iterator<Entry<K, V>>() {
+
+            final Iterator<Entry<K, V>> iterator = WrapMap.super.iterator(entriesIterator);
+
+            @Override public boolean hasNext() { return iterator.hasNext(); }
+            @Override public Entry<K, V> next() { return iterator.next(); }
+            @Override public void remove() { entriesIterator.remove(); }
+            @Override public void forEachRemaining(Consumer<? super Entry<K, V>> action) {
+                iterator.forEachRemaining(action); }
+        };
+    }
+
+    @Override
+    protected Spliterator<Entry<K, V>> spliterator(Spliterator<java.util.Map.Entry<K, V>> entriesSpliterator) {
+        return new Spliterator<Entry<K, V>>() {
+
+            final Spliterator<Entry<K, V>> spliterator = WrapMap.super.spliterator(entriesSpliterator);
+
+            @Override public boolean tryAdvance(Consumer<? super Entry<K, V>> action) { return spliterator.tryAdvance(action); }
+            @Override public Spliterator<Entry<K, V>> trySplit() { return spliterator.trySplit(); }
+            @Override public long estimateSize() { return spliterator.estimateSize(); }
+            @Override public void forEachRemaining(Consumer<? super Entry<K, V>> action) { spliterator.forEachRemaining(action); }
+            @Override public long getExactSizeIfKnown() { return spliterator.getExactSizeIfKnown(); }
+            @Override public Comparator<? super Entry<K, V>> getComparator() { return spliterator.getComparator(); }
+
+            @Override public int characteristics() {
+                return spliterator.characteristics() & ~IMMUTABLE; }
+            @Override public boolean hasCharacteristics(int characteristics) {
+                if ((characteristics & IMMUTABLE) != 0) return false;
+                return spliterator.hasCharacteristics(characteristics); }
+        };
+    }
+
 
     /**
      * Wrapping {@link java.util.Map.Entry} implementation of the {@link Map.Entry} interface.
@@ -234,31 +269,6 @@ public class WrapMap<K, V, M extends java.util.Map<K, V>>
         public static <K, V> Map.Entry<K, V> wrap(java.util.Map.Entry<K, V> entry) {
             return new WrapEntry<>(entry);
         }
-    }
-
-
-    /**
-     * Wrap Map entries {@link Iterator} implementation.
-     */
-    protected class WrapIterator extends AssociationIterator {
-
-        protected WrapIterator(Iterator<java.util.Map.Entry<K, V>> iterator) {
-            super(iterator); }
-
-        @Override public void remove() {
-            iterator.remove(); }
-    }
-
-    /**
-     * Wrap Map entries {@link Spliterator} implementation.
-     */
-    protected class WrapSpliterator extends AssociationSpliterator {
-
-        protected WrapSpliterator(Spliterator<java.util.Map.Entry<K, V>> spliterator) {
-            super(spliterator); }
-
-        @Override public int characteristics() {
-            return spliterator.characteristics(); }
     }
 
     /**

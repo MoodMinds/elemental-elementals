@@ -192,7 +192,7 @@ public abstract class AbstractLinkSequence<E, L extends Link<E, L>>
      * @param <E> the type of element
      * @param <L> the type of the {@code Link}
      */
-    protected static abstract class Link<E, L extends Link<E, L>> {
+    protected static class Link<E, L extends Link<E, L>> {
 
         /**
          * Item {@link E} value holding field.

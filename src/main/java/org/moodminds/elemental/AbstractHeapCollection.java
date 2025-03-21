@@ -44,7 +44,6 @@ public abstract class AbstractHeapCollection<E, M extends Map<E, Object>>
      * A reusable {@link BiFunction} that creates a new {@link Bucket} from two elements:
      * the existing single element previously associated with a key, and the new incoming element.
      */
-    @SuppressWarnings("unchecked")
     protected transient final BiFunction<E, E, Bucket<E>> bucketFactory = Bucket::new;
 
     /**
@@ -63,7 +62,6 @@ public abstract class AbstractHeapCollection<E, M extends Map<E, Object>>
      * @param map the given {@link M map}
      * @param elements the given sequential single-threaded {@link Producer} of elements
      */
-    @SuppressWarnings("unchecked")
     protected AbstractHeapCollection(M map, Producer<? extends E> elements) {
         super(map, elements, Bucket::put, Bucket::new);
     }
@@ -347,9 +345,8 @@ public abstract class AbstractHeapCollection<E, M extends Map<E, Object>>
          */
         protected transient Link<E> tail;
 
-        @SafeVarargs
-        public Bucket(E... elements) {
-            super(producer(elements), Link::new, ignored -> null);
+        public Bucket(E first, E second) {
+            super(producer(first, second), Link::new, ignored -> null);
         }
 
         @Override

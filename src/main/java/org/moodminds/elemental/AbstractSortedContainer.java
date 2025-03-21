@@ -14,8 +14,10 @@ import java.util.SortedMap;
 import java.util.Spliterator;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static java.util.Optional.ofNullable;
+import static org.moodminds.elemental.Producer.producer;
 import static org.moodminds.sneaky.Cast.cast;
 
 /**
@@ -65,15 +67,18 @@ public abstract class AbstractSortedContainer<E, M extends SortedMap<E, Object>>
 
             class Bucketing implements BiConsumer<Bucket<E>, E>, BiFunction<E, E, Bucket<E>> {
 
-                final Map<Bucket<E>, Link<E>> tails = new IdentityHashMap<>();
+                final Map<Bucket<E>, Link<E>> tails = new IdentityHashMap<>(); Link<E> tail;
 
                 @Override public void accept(Bucket<E> bucket, E e) {
                     Link<E> next; bucket.put(tails.put(bucket, next = new Link<>(e)), next); }
                 @Override public Bucket<E> apply(E e1, E e2) {
-                    Bucket<E> bucket = new Bucket<>(); accept(bucket, e1); accept(bucket, e1); return bucket; }
+                    Bucket<E> bucket = new Bucket<>(link -> {
+                        Link<E> tail = this.tail; this.tail = link; return tail;
+                    }, e1, e2); tails.put(bucket, tail); tail = null; return bucket; }
             }
 
             Bucketing bucketing() { return new Bucketing(); }
+
         }.bucketing());
     }
 
@@ -150,6 +155,10 @@ public abstract class AbstractSortedContainer<E, M extends SortedMap<E, Object>>
     protected static class Bucket<E> extends LinkSequence<E> {
 
         private static final long serialVersionUID = 5178607093351787071L;
+
+        public Bucket(Function<Link<E>, Link<E>> tailing, E first, E second) {
+            super(producer(first, second), tailing);
+        }
     }
 
 

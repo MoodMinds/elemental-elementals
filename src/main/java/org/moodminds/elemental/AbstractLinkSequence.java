@@ -1,0 +1,366 @@
+package org.moodminds.elemental;
+
+import org.moodminds.elemental.AbstractLinkSequence.Link;
+
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.util.Iterator;
+import java.util.function.Function;
+
+import static java.lang.String.format;
+import static org.moodminds.sneaky.Cast.cast;
+
+/**
+ * A template linked implementation of the {@link Sequence} interface.
+ *
+ * @param <E> the type of elements
+ * @param <L> the type of {@link Link} link
+ */
+public abstract class AbstractLinkSequence<E, L extends Link<E, L>>
+        extends AbstractSequence<E> implements Serializable {
+
+    private static final long serialVersionUID = 239364802410716153L;
+
+    /**
+     * Head {@link L} node holding field.
+     */
+    protected transient L head;
+
+    /**
+     * Sequence size holding field.
+     */
+    protected transient int size;
+
+    /**
+     * Construct the object with no arguments.
+     */
+    protected AbstractLinkSequence() {}
+
+    /**
+     * Construct the object by initializing its internal linked structure from the given sequential
+     * single-threaded {@link Producer} of elements, using the specified link creation and tail-linking strategies.
+     *
+     * @param elements the given sequential single-threaded {@link Producer} of elements
+     * @param linkFactory a {@link Function} that creates a new link from a given element
+     * @param tailing a stateful {@link Function} that returns the previous tail link to correctly chain the new link
+     */
+    protected AbstractLinkSequence(Producer<? extends E> elements, Function<E, L> linkFactory, Function<L, L> tailing) {
+        init(elements, linkFactory, tailing);
+    }
+
+    /**
+     * Initialize the sequence from the specified sequential single-threaded {@link Producer} of elements
+     * and inserting them using the specified link creation and tail-linking strategies.
+     *
+     * @param elements the given sequential single-threaded {@link Producer} of elements
+     * @param linkFactory a {@link Function} that creates a new link from a given element
+     * @param tailing a stateful {@link Function} that returns the previous tail link to correctly chain the new link
+     */
+    protected void init(Producer<? extends E> elements, Function<E, L> linkFactory, Function<L, L> tailing) {
+        elements.provide(element -> { L next; put(tailing.apply(next = linkFactory.apply(element)), next); });
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @param index {@inheritDoc}
+     * @return {@inheritDoc}
+     * @throws IndexOutOfBoundsException {@inheritDoc}
+     */
+    @Override
+    public <R extends E> R get(int index) {
+        return cast(link(elementIndex(index, size)).item);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @return {@inheritDoc}
+     */
+    @Override
+    public Iterator<E> iterator() {
+        return iterator(null, this, 0);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @param index {@inheritDoc}
+     * @return {@inheritDoc}
+     * @throws IndexOutOfBoundsException {@inheritDoc}
+     */
+    @Override
+    public SequenceIterator<E> iterator(int index) {
+        return iterator(positionIndex(index, size) == 0 ? null : link(index - 1), this, index);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @return {@inheritDoc}
+     */
+    @Override
+    public int size() {
+        return size;
+    }
+
+    /**
+     * Append the specified {@link L} link after the given {@link L} link,
+     * and increment the sequence size.
+     *
+     * @param tail the current tail {@link L} link, or {@code null} if the sequence is empty
+     * @param next the new {@link L} link to be appended; must not be {@code null}
+     */
+    protected void put(L tail, L next) {
+        if (tail != null) link(tail, next); else head = next; size++;
+    }
+
+    /**
+     * Remove the {@link L} that follows the given {@code previous} {@link L} from the sequence
+     * and decrement the sequence size.
+     * <p>
+     * If {@code previous} is {@code null}, the head of the sequence is removed.
+     * Otherwise, the link following {@code previous} is detached via {@link #unlink(L)}.
+     *
+     * @param previous the {@link L} link preceding the one to be removed, or {@code null} if the head link should be removed
+     */
+    protected void delete(L previous) {
+        if (previous == null) head = head.next; else unlink(previous); size--;
+    }
+
+    /**
+     * Link the specified {@link L} as the next to the previous one.
+     *
+     * @param previous the specified previous {@link L} link
+     * @param next the specified next {@link L} link
+     */
+    protected void link(L previous, L next) {
+        next.next = previous.next; previous.next = next;
+    }
+
+    /**
+     * Unlink the next {@link L} from the given previous one.
+     *
+     * @param previous the specified previous {@link L} link
+     */
+    protected void unlink(L previous) {
+        previous.next = previous.next != null ? previous.next.next : null;
+    }
+
+    /**
+     * Retrieve the {@link L} link at the specified index, starting from the head.
+     *
+     * @param index the index of the {@link L} link to retrieve
+     * @return the {@link L} link at the given index
+     */
+    protected L link(int index) {
+        return next(head, index);
+    }
+
+    /**
+     * Traverse the linked sequence to retrieve the {@link L} link at the specified index.
+     *
+     * @param link the starting {@link L} link from which traversal begins
+     * @param index the number of steps to move forward
+     * @return the {@link L} link at the given index after traversal
+     */
+    protected L next(L link, int index) {
+        L next = link;
+        for (int i = 0; i < index; i++)
+            next = next.next;
+        return next;
+    }
+
+    /**
+     * Returns a {@link SequenceIterator} for iterating over the sequence starting from the given link.
+     * <p>
+     * This is a convenience overload of {@link #iterator(L, Sequence, int, Runnable)}
+     * that does not define element removal.
+     * </p>
+     *
+     * @param previous the previous link before the iteration starts, or {@code null} if starting from the head
+     * @param sequence the given sequence
+     * @param index    the starting index of the iteration
+     * @return a {@link SequenceIterator} starting at the given index
+     */
+    protected final SequenceIterator<E> iterator(L previous, Sequence<E> sequence, int index) {
+        return iterator(previous, sequence, index, null);
+    }
+
+    /**
+     * Return a {@link SequenceIterator} for iterating over the sequence starting from the given link.
+     *
+     * @param previous the previous link before the iteration starts, or {@code null} if starting from the head
+     * @param sequence the given sequence
+     * @param index    the starting index of the iteration
+     * @param removal  a {@link Runnable} to execute upon element removal
+     * @return a {@link SequenceIterator} starting at the given index
+     */
+    protected SequenceIterator<E> iterator(L previous, Sequence<E> sequence, int index, Runnable removal) {
+        return new AbstractLinkSequenceIterator<E, L>(previous, index, removal) {
+            @Override protected boolean hasPreviousLink() { return super.hasPreviousLink() && index > 0; }
+            @Override protected boolean hasNext(L link) { return index < sequence.size(); }
+            @Override protected L next(L link) { return link != null ? link.next : head; }
+            @Override protected E item(L link) { return link.item; }
+        };
+    }
+
+    /**
+     * Validate and return the given index within the specified size.
+     *
+     * <p>Ensure that the provided {@code index} falls within
+     * the valid range {@code [0, size - 1]}. If the index is out of bounds,
+     * throw an {@link IndexOutOfBoundsException}.
+     *
+     * @param index the index to validate
+     * @param size  the upper bound (exclusive) for valid indices
+     * @return the validated index
+     * @throws IndexOutOfBoundsException if {@code index} is negative or not less than {@code size}
+     */
+    protected int elementIndex(int index, int size) {
+        if (index < 0 || index >= size)
+            throw new IndexOutOfBoundsException("Index out of range: " + index);
+        return index;
+    }
+
+    /**
+     * Validate and return the given position within the specified size.
+     *
+     * <p>Ensure that the provided {@code index} falls within
+     * the valid range {@code [0, size]}. Unlike {@link #elementIndex(int, int)},
+     * allow {@code index} to be equal to {@code size}, making
+     * it suitable for scenarios where an exclusive upper bound is valid.
+     * If the index is out of bounds, throw an {@link IndexOutOfBoundsException}.
+     *
+     * @param index the position to validate
+     * @param size  the upper bound (inclusive) for valid positions
+     * @return the validated position
+     * @throws IndexOutOfBoundsException if {@code index} is negative or greater than {@code size}
+     */
+    protected int positionIndex(int index, int size) {
+        if (index < 0 || index > size)
+            throw new IndexOutOfBoundsException("Index out of range: " + index);
+        return index;
+    }
+
+    private void writeObject(ObjectOutputStream output) throws Exception {
+        output.defaultWriteObject(); serialize(output);
+    }
+
+    private void readObject(ObjectInputStream input) throws Exception {
+        input.defaultReadObject(); deserialize(input);
+    }
+
+    protected abstract void serialize(ObjectOutputStream output) throws Exception;
+
+    protected abstract void deserialize(ObjectInputStream input) throws Exception;
+
+
+
+    /**
+     * Represents a node in a linked structure, holding an element and a reference to the next link.
+     *
+     * @param <E> the type of element
+     * @param <L> the type of the {@code Link}
+     */
+    protected static class Link<E, L extends Link<E, L>> {
+
+        /**
+         * Item {@link E} value holding field.
+         */
+        protected E item;
+
+        /**
+         * Next {@link L} link holding field.
+         */
+        protected L next;
+
+        /**
+         * Construct the object with the given item value.
+         *
+         * @param item the given item value
+         */
+        protected Link(E item) { this.item = item; }
+    }
+
+    /**
+     * A subsequence view of a linked sequence template.
+     * <p>
+     * This class extends {@link AbstractSequence} and provides a serializable
+     * representation of a contiguous segment of the original linked sequence.
+     * </p>
+     */
+    protected abstract class AbstractLinkSubSequence extends AbstractSequence<E> implements Serializable {
+
+        private static final long serialVersionUID = -7874437837379449962L;
+
+        protected final AbstractLinkSubSequence parent;
+
+        protected transient L previous;
+
+        protected int offset, size;
+
+        /**
+         * Constructs the object with the specified size and index range.
+         *
+         * @param size the total size of the subsequence
+         * @param fromIndex the starting index of the subsequence (inclusive)
+         * @param toIndex the ending index of the subsequence (exclusive)
+         * @throws IndexOutOfBoundsException if {@code fromIndex} is negative or {@code toIndex} exceeds {@code size}
+         * @throws IllegalArgumentException if {@code fromIndex} is greater than {@code toIndex}
+         */
+        protected AbstractLinkSubSequence(int size, int fromIndex, int toIndex) {
+            this(null, size, fromIndex, toIndex);
+        }
+
+        /**
+         * Construct the object with the given parent sequence using the parent's size.
+         *
+         * @param parent the parent sequence from which this subsequence is derived
+         * @param fromIndex the starting index of the subsequence (inclusive)
+         * @param toIndex the ending index of the subsequence (exclusive)
+         * @throws IndexOutOfBoundsException if {@code fromIndex} is negative or {@code toIndex} exceeds the parent's size
+         * @throws IllegalArgumentException if {@code fromIndex} is greater than {@code toIndex}
+         */
+        protected AbstractLinkSubSequence(AbstractLinkSubSequence parent, int fromIndex, int toIndex) {
+            this(parent, parent.size, fromIndex, toIndex);
+        }
+
+        /**
+         * Construct the object with the given parent sequence.
+         *
+         * @param parent the parent sequence from which this subsequence is derived
+         * @param size the size of the parent sequence
+         * @param fromIndex the starting index of the subsequence (inclusive)
+         * @param toIndex the ending index of the subsequence (exclusive)
+         * @throws IndexOutOfBoundsException if {@code fromIndex} is negative or {@code toIndex} exceeds {@code size}
+         * @throws IllegalArgumentException if {@code fromIndex} is greater than {@code toIndex}
+         */
+        private AbstractLinkSubSequence(AbstractLinkSubSequence parent, int size, int fromIndex, int toIndex) {
+            if (fromIndex < 0)
+                throw new IndexOutOfBoundsException(format("fromIndex = %d", fromIndex));
+            if (toIndex > size)
+                throw new IndexOutOfBoundsException(format("toIndex = %d", toIndex));
+            if (fromIndex > toIndex)
+                throw new IllegalArgumentException(format("fromIndex(%d) > toIndex(%d)", fromIndex, toIndex));
+            this.parent = parent; this.offset = fromIndex; this.size = toIndex - fromIndex;
+        }
+
+        @Override public <R extends E> R get(int index) {
+            return cast(previous(elementIndex(index, size) + 1).item); }
+        @Override public int size() {
+            return size; }
+
+        protected L previous(int index) {
+            if (previous == null)
+                if (offset == 0) {
+                    if (parent != null) previous = parent.previous(0);
+                } else if (parent != null && parent.previous(0) != null)
+                    previous = next(parent.previous(0), offset);
+                else previous = link(offset - 1);
+            if (index == 0) return previous;
+            return previous != null ? next(previous, index) : next(head, index - 1);
+        }
+    }
+}

@@ -67,7 +67,7 @@ public abstract class AbstractHeapCollection<E, M extends Map<E, Object>>
     }
 
     @Override public boolean add(E element) {
-        put(element); countMod(); return true; }
+        put(bucketAccumulator, bucketFactory, element); countMod(); return true; }
     @Override public void clear() {
         map.clear(); countClear(); countMod(); }
 
@@ -77,19 +77,6 @@ public abstract class AbstractHeapCollection<E, M extends Map<E, Object>>
         return collectionIterator(super.iterator()); }
     @Override public Spliterator<E> spliterator() {
         return collectionSpliterator(super.spliterator()); }
-
-    /**
-     * Insert the specified {@code element} into the internal map structure.
-     * <p>
-     * Delegate to {@link #put(BiConsumer, BiFunction, Object)} with predefined
-     * {@link #bucketAccumulator} and {@link #bucketFactory} strategies.
-     *
-     * @param element the element to insert; must not be {@code null}
-     * @throws NullPointerException if {@code element} is {@code null} and the {@link M} does not accept null values
-     */
-    protected void put(E element) {
-        put(bucketAccumulator, bucketFactory, element);
-    }
 
     /**
      * {@inheritDoc}

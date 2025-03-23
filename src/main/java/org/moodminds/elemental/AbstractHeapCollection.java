@@ -330,7 +330,7 @@ public abstract class AbstractHeapCollection<E, M extends Map<E, Object>>
         private static final long serialVersionUID = -5964830056992665020L;
 
         /**
-         * Head {@link Link} node holding field.
+         * Tail {@link Link} node holding field.
          */
         protected transient Link<E> tail;
 

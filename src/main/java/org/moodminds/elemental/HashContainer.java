@@ -164,9 +164,6 @@ public class HashContainer<E> extends AbstractHeapContainer<E, Bucket<E>, Map<E,
         private static final long serialVersionUID = 5178607093351787071L;
 
         public Bucket(E first, E second) { super(first, second); }
-
-        public void put(Link<E> tail, Link<E> link) {
-            link(tail, link); size++; }
     }
 
     /**

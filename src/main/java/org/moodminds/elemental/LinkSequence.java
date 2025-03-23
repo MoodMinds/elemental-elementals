@@ -86,8 +86,18 @@ public class LinkSequence<E> extends AbstractLinkSequence<E, Link<E>> {
         elements.provide(new Consumer<E>() {
             Link<E> tail;
             @Override public void accept(E e) {
-                link(tail, tail = new Link<>(e)); size++; }
+                put(tail, tail = new Link<>(e)); }
         });
+    }
+
+    /**
+     * Put the specified {@link Link} to this Container as the next to the previous one.
+     *
+     * @param previous the specified previous {@link Link} link
+     * @param next the specified next {@link Link} link
+     */
+    protected void put(Link<E> previous, Link<E> next) {
+        link(previous, next); size++;
     }
 
     @Override public Sequence<E> sub(int fromIndex, int toIndex) {

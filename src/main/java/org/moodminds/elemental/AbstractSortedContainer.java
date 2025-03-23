@@ -147,9 +147,6 @@ public abstract class AbstractSortedContainer<E, M extends SortedMap<E, Object>>
         private static final long serialVersionUID = -8267799111732935085L;
 
         public Bucket(E first, E second) { super(first, second); }
-
-        public void put(Link<E> tail, Link<E> link) {
-            link(tail, link); size++; }
     }
 
     /**

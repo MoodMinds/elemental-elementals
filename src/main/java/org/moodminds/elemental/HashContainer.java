@@ -107,7 +107,6 @@ public class HashContainer<E> extends AbstractHeapContainer<E, Bucket<E>, Map<E,
      * Initialize the object with the given sequential single-threaded {@link Producer} of elements
      * and using a single stateful {@link Bucketing} strategy for both bucket creation and accumulation.
      *
-     * @param map the backing {@link HashMap} used for storing single elements and buckets
      * @param elements the given sequential single-threaded {@link Producer} of elements
      * @param bucketing a combined {@link Bucketing} strategy for bucket handling
      */

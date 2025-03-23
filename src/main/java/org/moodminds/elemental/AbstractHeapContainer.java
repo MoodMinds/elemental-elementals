@@ -18,8 +18,12 @@ import static java.util.Optional.ofNullable;
 import static org.moodminds.sneaky.Cast.cast;
 
 /**
- * A template implementation of the {@link Container} interface,
- * which allows duplicates and is powered by an internal {@link Map}.
+ * An abstract base for {@link Container}s that do not preserve insertion order.
+ * <p>
+ * This Container arranges elements internally using bucket-based structure,
+ * meaning the iteration order is not defined and may differ from insertion order.
+ * The primary purpose is to provide efficient grouping and accumulation mechanisms
+ * without maintaining sequential order.
  *
  * @param <E> the element type
  * @param <B> the type of the internal {@link Container} bucket that holds duplicates

@@ -159,8 +159,8 @@ public class HashContainer<E> extends AbstractHeapContainer<E, Bucket<E>, Map<E,
             @Override public void accept(Bucket<E> bucket, E e) {
                 Link<E> next; bucket.put(tails.put(bucket, next = new Link<>(e)), next); }
             @Override public Bucket<E> apply(E first, E second) {
-                Bucket<E> bucket = new Bucket<>(first, second);
-                tails.put(bucket, bucket.head.next); return bucket; }
+                Link<E> head = new Link<>(first), next = new Link<>(second);
+                Bucket<E> bucket = new Bucket<>(head, next); tails.put(bucket, next); return bucket; }
         };
     }
 
@@ -173,7 +173,8 @@ public class HashContainer<E> extends AbstractHeapContainer<E, Bucket<E>, Map<E,
 
         private static final long serialVersionUID = 5178607093351787071L;
 
-        public Bucket(E first, E second) { super(first, second); }
+        public Bucket(Link<E> head, Link<E> next) {
+            put(null, head); put(head, next); }
     }
 
     /**

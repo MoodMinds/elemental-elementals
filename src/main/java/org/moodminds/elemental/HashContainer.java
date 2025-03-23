@@ -93,7 +93,7 @@ public class HashContainer<E> extends AbstractHeapContainer<E, Bucket<E>, Map<E,
 
     /**
      * Construct the object with the given {@link HashMap} and sequential single-threaded {@link Producer} of elements
-     * and using a single stateful {@code bucketing} strategy for both bucket creation and accumulation.
+     * and using a single stateful {@link Bucketing} strategy for both bucket creation and accumulation.
      *
      * @param map the backing {@link HashMap} used for storing single elements and buckets
      * @param elements the given sequential single-threaded {@link Producer} of elements
@@ -101,6 +101,18 @@ public class HashContainer<E> extends AbstractHeapContainer<E, Bucket<E>, Map<E,
      */
     private HashContainer(HashMap<E, Object> map, Producer<? extends E> elements, Bucketing<E> bucketing) {
         super(map, elements, bucketing, bucketing);
+    }
+
+    /**
+     * Initialize the object with the given sequential single-threaded {@link Producer} of elements
+     * and using a single stateful {@link Bucketing} strategy for both bucket creation and accumulation.
+     *
+     * @param map the backing {@link HashMap} used for storing single elements and buckets
+     * @param elements the given sequential single-threaded {@link Producer} of elements
+     * @param bucketing a combined {@link Bucketing} strategy for bucket handling
+     */
+    private void init(Producer<? extends E> elements, Bucketing<E> bucketing) {
+        init(elements, bucketing, bucketing);
     }
 
     @Override public int size() {
@@ -126,13 +138,12 @@ public class HashContainer<E> extends AbstractHeapContainer<E, Bucket<E>, Map<E,
     protected void deserialize(ObjectInputStream input) throws Exception {
         int size; if ((size = input.readInt()) < 0)
             throw new InvalidObjectException("Negative size: " + size);
-        map = new HashMap<>(capacity(size));
-        Bucketing<E> bucketing = bucketing(); init(consumer -> {
+        map = new HashMap<>(capacity(size)); init(consumer -> {
             try {
                 while (this.size < size)
                     consumer.accept(cast(input.readObject()));
             } catch (Exception e) { sneak(e); }
-        }, bucketing, bucketing);
+        }, bucketing());
     }
 
     /**

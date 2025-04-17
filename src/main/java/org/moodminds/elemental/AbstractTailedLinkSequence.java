@@ -132,7 +132,7 @@ public abstract class AbstractTailedLinkSequence<E, L extends Node<E, L>> extend
         private static final long serialVersionUID = -6403120751829933670L;
 
         /**
-         * Constructs the object with the specified size and index range.
+         * Construct the object with the specified size and index range.
          *
          * @param size the total size of the subsequence
          * @param fromIndex the starting index of the subsequence (inclusive)

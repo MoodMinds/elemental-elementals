@@ -67,8 +67,8 @@ public abstract class AbstractTailedSequenceIterator<E> extends AbstractSequence
      * @throws NullPointerException {@inheritDoc}
      */
     @Override
-    public void forEachRemaining(Consumer<? super E> action) {
-        super.forEachRemaining(action);
+    public void forEachPreceding(Consumer<? super E> action) {
+        super.forEachPreceding(action);
     }
 
     /**
@@ -78,8 +78,8 @@ public abstract class AbstractTailedSequenceIterator<E> extends AbstractSequence
      * @throws NullPointerException {@inheritDoc}
      */
     @Override
-    public void forEachPreceding(Consumer<? super E> action) {
-        super.forEachPreceding(action);
+    public void forEachRemaining(Consumer<? super E> action) {
+        super.forEachRemaining(action);
     }
 
     /**

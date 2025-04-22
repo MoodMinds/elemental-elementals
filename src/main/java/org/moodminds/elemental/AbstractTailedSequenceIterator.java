@@ -60,6 +60,12 @@ public abstract class AbstractTailedSequenceIterator<E> extends AbstractSequence
         return super.previousIndex();
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @param action {@inheritDoc}
+     * @throws NullPointerException {@inheritDoc}
+     */
     @Override
     public void forEachRemaining(Consumer<? super E> action) {
         super.forEachRemaining(action);

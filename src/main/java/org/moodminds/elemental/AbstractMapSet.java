@@ -68,8 +68,10 @@ public abstract class AbstractMapSet<E, M extends Map<E, E>>
 
             {
                 iterator = (OptionalIterator<E>) AbstractMapSet.super.iterator(value, present, () -> {
-                    checkMod(); if (removal != null) removal.run();
-                    map.remove(value); iterator.present = false; modCheckIterator = AbstractMapSet.this.iterator();
+                    checkMod();
+                    if (removal != null) removal.run();
+                    map.remove(value); iterator.present = false;
+                    modCheckIterator = AbstractMapSet.this.iterator();
                 });
             }
 

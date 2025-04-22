@@ -86,9 +86,9 @@ public class WrapCollection<E, C extends java.util.Collection<E>> extends Abstra
             boolean moved; final Iterator<E> iterator = WrapCollection.super.iterator(i, o, () -> {
                 checkMod();
                 if (removal != null) removal.run();
-                if (!moved) i.remove();
-                else throw new IllegalStateException("The remove() method can only be called immediately after retrieving an element.");
-                modCheckIterator = wrapped.iterator();
+                if (!moved) {
+                    i.remove(); modCheckIterator = wrapped.iterator();
+                } else throw new IllegalStateException("The remove() method can only be called immediately after retrieving an element.");
             });
 
             @Override public boolean hasNext() {

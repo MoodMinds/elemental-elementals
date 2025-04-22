@@ -3,6 +3,7 @@ package org.moodminds.elemental;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.Set;
 import java.util.Spliterator;
@@ -80,20 +81,26 @@ public class WrapCollection<E, C extends java.util.Collection<E>> extends Abstra
     protected Iterator<E> iterator(Iterator<E> i, Object o, Runnable removal) {
         return new Iterator<E>() {
 
+            Iterator<?> modCheckIterator = wrapped.iterator();
+
             boolean moved; final Iterator<E> iterator = WrapCollection.super.iterator(i, o, () -> {
+                checkMod();
                 if (removal != null) removal.run();
                 if (!moved) i.remove();
                 else throw new IllegalStateException("The remove() method can only be called immediately after retrieving an element.");
+                modCheckIterator = wrapped.iterator();
             });
 
             @Override public boolean hasNext() {
                 boolean hasNext = iterator.hasNext(); moved = true; return hasNext; }
             @Override public E next() {
-                E next = iterator.next(); moved = false; return next; }
+                checkMod(); E next = iterator.next(); moved = false; return next; }
             @Override public void remove() {
                 iterator.remove(); }
             @Override public void forEachRemaining(Consumer<? super E> action) {
                 iterator.forEachRemaining(action); moved = true; }
+
+            void checkMod() { try { modCheckIterator.next(); } catch (NoSuchElementException ignored) {} }
         };
     }
 

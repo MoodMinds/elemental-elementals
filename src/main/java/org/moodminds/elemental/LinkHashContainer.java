@@ -199,14 +199,14 @@ public class LinkHashContainer<E> extends AbstractMapContainer<E, Bucket<E>, Map
 
                 @Override void add(E value, E element) {
                     map.put(value, bucket = new Bucket<>(value, element, (NodeNode<E>) (head, tail) ->
-                        this.bucket.link(previous, before, tail, (previous, next) -> {
+                        bucket.link(previous, before, tail, (previous, next) -> {
                             this.previous = head; before = previous; this.next = next; tails.put(bucket, previous);
                         })
                     )); tails.put(bucket, next); }
 
                 @Override void add(Node<E> value, E element) {
                     map.put(value.item(), bucket = new Bucket<>(value.item(), value.next(), element, (head, tail) ->
-                        this.bucket.link(previous, before == value ? head : before, tail, (previous, next) -> {
+                        bucket.link(previous, before == value ? head : before, tail, (previous, next) -> {
                             this.previous = head; before = previous; this.next = next; tails.put(bucket, previous);
                         })
                     )); tails.put(bucket, next); }

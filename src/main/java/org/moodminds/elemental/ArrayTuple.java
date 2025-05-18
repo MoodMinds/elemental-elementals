@@ -16,15 +16,15 @@ public class ArrayTuple extends AbstractTuple implements Tuple, Serializable {
     /**
      * Field to hold the elements.
      */
-    protected final Object[] array;
+    protected final Object[] data;
 
     /**
      * Construct the object with the specified values array.
      *
-     * @param array the specified values array.
+     * @param data the specified values array.
      */
-    public ArrayTuple(Object... array) {
-        this.array = array;
+    public ArrayTuple(Object... data) {
+        this.data = data;
     }
 
     /**
@@ -42,7 +42,7 @@ public class ArrayTuple extends AbstractTuple implements Tuple, Serializable {
      * @param tuple the specified {@link ArrayTuple}.
      */
     public ArrayTuple(ArrayTuple tuple) {
-        this(tuple.array.clone());
+        this(tuple.data.clone());
     }
 
     /**
@@ -54,9 +54,9 @@ public class ArrayTuple extends AbstractTuple implements Tuple, Serializable {
      */
     @Override
     public <R> R get(int index) {
-        if (index < 0 || index >= array.length)
+        if (index < 0 || index >= data.length)
             throw new IndexOutOfBoundsException(format("Index is out of bounds: %d.", index));
-        return cast(array[index]);
+        return cast(data[index]);
     }
 
     /**
@@ -66,7 +66,7 @@ public class ArrayTuple extends AbstractTuple implements Tuple, Serializable {
      */
     @Override
     public int width() {
-        return array.length;
+        return data.length;
     }
 
 

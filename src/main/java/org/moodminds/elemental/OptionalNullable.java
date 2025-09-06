@@ -295,8 +295,7 @@ public final class OptionalNullable<V> {
     }
 
     /**
-     * Return a non-empty string representation of this {@code OptionalNullable}
-     * suitable for debugging.
+     * Return a non-empty string representation of this {@code OptionalNullable}.
      *
      * @return the string representation of this instance
      */

@@ -252,6 +252,20 @@ public final class OptionalNullable<V> {
     }
 
     /**
+     * Convert this {@code OptionalNullable} to an {@link Optional}.
+     * <p>
+     * If no value is present, return an empty {@code Optional}.
+     * If a non-{@code null} value is present, returns an {@code Optional} containing that value.
+     * If a {@code null} value is present, returns an empty {@code Optional} since
+     * {@code Optional} cannot represent {@code null} values.
+     *
+     * @return an {@code Optional} representation of this {@code OptionalNullable}
+     */
+    public Optional<V> optional() {
+        return Optional.ofNullable(value);
+    }
+
+    /**
      * Return the hash code of the value, if present, otherwise {@code 0} (zero).
      *
      * @return hash code value of the present value or {@code 0} if no value is present

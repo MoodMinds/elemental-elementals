@@ -24,7 +24,6 @@ import static java.util.function.Function.identity;
  * and distinguished from the absence of a value entirely.
  *
  * @param <V> the type of value that may be contained
- * @since 1.0
  */
 public final class OptionalNullable<V> {
 

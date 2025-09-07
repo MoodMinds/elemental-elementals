@@ -533,15 +533,17 @@ public final class OptionalNullable<V> {
                     ? VolatileAccumulation::new : VariableAccumulation::new;
 
             @Override public Supplier<Accumulation> supplier() {
-                Supplier<A> supplier = collector.supplier(); return () -> accumulationFactory.apply(supplier.get(), false); }
+                Supplier<A> supplier = collector.supplier(); return () ->
+                        accumulationFactory.apply(supplier.get(), false); }
 
             @Override public BiConsumer<Accumulation, V> accumulator() {
                 BiConsumer<A, ? super V> accumulator = collector.accumulator(); return (accumulation, v) ->
                         accumulator.accept(accumulation.present().accumulation, v); }
 
             @Override public BinaryOperator<Accumulation> combiner() {
-                BinaryOperator<A> combiner = collector.combiner(); return (a1, a2) ->
-                        accumulationFactory.apply(combiner.apply(a1.accumulation, a2.accumulation), a1.isPresent() || a2.isPresent()); }
+                BinaryOperator<A> combiner = collector.combiner(); return (accumulation1, accumulation2) ->
+                        accumulationFactory.apply(combiner.apply(accumulation1.accumulation, accumulation2.accumulation),
+                                accumulation1.isPresent() || accumulation2.isPresent()); }
 
             @Override public Function<Accumulation, OptionalNullable<V>> finisher() {
                 Function<A, Optional<V>> finisher = collector.finisher(); return accumulation ->

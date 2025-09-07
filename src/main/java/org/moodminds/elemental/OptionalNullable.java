@@ -481,21 +481,21 @@ public final class OptionalNullable<V> {
 
         abstract class Accumulation { final A accumulation;
             Accumulation(A accumulation) {this.accumulation = accumulation; }
-            abstract void present();
+            abstract Accumulation present();
             abstract boolean isPresent();
         }
 
         class VariableAccumulation extends Accumulation { boolean present;
             VariableAccumulation(A accumulation, boolean present) {
                 super(accumulation); this.present = present; }
-            @Override void present() { present = true; }
+            @Override Accumulation present() { present = true; return this; }
             @Override public boolean isPresent() { return present; }
         }
 
         class VolatileAccumulation extends Accumulation { volatile boolean present;
             VolatileAccumulation(A accumulation, boolean present) {
                 super(accumulation); this.present = present; }
-            @Override void present() { present = true; }
+            @Override Accumulation present() { present = true; return this; }
             @Override public boolean isPresent() { return present; }
         }
 
@@ -508,9 +508,8 @@ public final class OptionalNullable<V> {
                 Supplier<A> supplier = collector.supplier(); return () -> accumulationFactory.apply(supplier.get(), false); }
 
             @Override public BiConsumer<Accumulation, V> accumulator() {
-                BiConsumer<A, ? super V> accumulator = collector.accumulator(); return (accumulation, v) -> {
-                    accumulation.present(); accumulator.accept(accumulation.accumulation, v);
-                }; }
+                BiConsumer<A, ? super V> accumulator = collector.accumulator(); return (accumulation, v) ->
+                        accumulator.accept(accumulation.present().accumulation, v); }
 
             @Override public BinaryOperator<Accumulation> combiner() {
                 BinaryOperator<A> combiner = collector.combiner(); return (a1, a2) ->

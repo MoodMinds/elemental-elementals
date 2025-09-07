@@ -1,16 +1,24 @@
 package org.moodminds.elemental;
 
+import java.util.Comparator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collector;
 import java.util.stream.Stream;
 
+import static java.util.Comparator.comparing;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
+import static java.util.stream.Collector.Characteristics.CONCURRENT;
 
 /**
  * A container object that may or may not contain a value, including {@code null} values.
@@ -29,6 +37,15 @@ public final class OptionalNullable<V> {
 
     private final V value;
     private final boolean present;
+
+    /**
+     * Construct an instance with the {@code null} value and presence flag.
+     *
+     * @param present {@code true} if a value is present, {@code false} otherwise
+     */
+    private OptionalNullable(boolean present) {
+        this.value = null; this.present = present;
+    }
 
     /**
      * Construct an instance with the specified value and presence flag.
@@ -124,7 +141,7 @@ public final class OptionalNullable<V> {
     public <U> OptionalNullable<U> map(Function<? super V, ? extends U> mapper) {
         requireNonNull(mapper);
         if (isEmpty()) return empty();
-        else return of(mapper.apply(value));
+        else return nullable(mapper.apply(value));
     }
 
     /**
@@ -142,7 +159,7 @@ public final class OptionalNullable<V> {
     public <U> OptionalNullable<U> flatMap(Function<? super V, ? extends OptionalNullable<? extends U>> mapper) {
         requireNonNull(mapper);
         if (isEmpty()) return empty();
-        else return requireNonNull(mapper.apply(value)).flatMap(OptionalNullable::of);
+        else return requireNonNull(mapper.apply(value)).flatMap(OptionalNullable::nullable);
     }
 
     /**
@@ -312,7 +329,17 @@ public final class OptionalNullable<V> {
      * @return an empty {@code OptionalNullable}
      */
     public static <V> OptionalNullable<V> empty() {
-        return new OptionalNullable<>(null, false);
+        return new OptionalNullable<>(false);
+    }
+
+    /**
+     * Return an {@code OptionalNullable} describing the {@code null} value.
+     *
+     * @param <V> the type of the value
+     * @return an {@code OptionalNullable} with the value present
+     */
+    public static <V> OptionalNullable<V> nullable() {
+        return new OptionalNullable<>(true);
     }
 
     /**
@@ -322,7 +349,180 @@ public final class OptionalNullable<V> {
      * @param value the value to describe; may be {@code null}
      * @return an {@code OptionalNullable} with the value present
      */
-    public static <V> OptionalNullable<V> of(V value) {
+    public static <V> OptionalNullable<V> nullable(V value) {
         return new OptionalNullable<>(value, true);
+    }
+
+    /**
+     * Return an {@code OptionalNullable} describing an arbitrary element from the given stream,
+     * or an empty {@code OptionalNullable} if the stream is empty.
+     * <p>
+     * Unlike {@link Stream#findAny()}, this method preserves {@code null} values that may
+     * be present in the stream, distinguishing between an empty stream and a stream
+     * containing a {@code null} element.
+     *
+     * @param <V> the type of stream elements
+     * @param stream the stream from which to find an element
+     * @return an {@code OptionalNullable} describing an arbitrary element from the stream,
+     *         or an empty {@code OptionalNullable} if the stream is empty
+     * @throws NullPointerException if the stream is {@code null}
+     */
+    public static <V> OptionalNullable<V> findAny(Stream<? extends V> stream) {
+        return stream.<OptionalNullable<V>>map(OptionalNullable::nullable).findAny()
+                .orElseGet(OptionalNullable::empty);
+    }
+
+    /**
+     * Return an {@code OptionalNullable} describing the first element of the given stream,
+     * or an empty {@code OptionalNullable} if the stream is empty.
+     * <p>
+     * Unlike {@link Stream#findFirst()}, this method preserves {@code null} values that may
+     * be the first element in the stream, distinguishing between an empty stream and a stream
+     * whose first element is {@code null}.
+     *
+     * @param <V> the type of stream elements
+     * @param stream the stream from which to find the first element
+     * @return an {@code OptionalNullable} describing the first element of the stream,
+     *         or an empty {@code OptionalNullable} if the stream is empty
+     * @throws NullPointerException if the stream is {@code null}
+     */
+    public static <V> OptionalNullable<V> findFirst(Stream<? extends V> stream) {
+        return stream.<OptionalNullable<V>>map(OptionalNullable::nullable).findFirst()
+                .orElseGet(OptionalNullable::empty);
+    }
+
+    /**
+     * Return an {@code OptionalNullable} describing the minimum element of the given stream
+     * according to the provided {@link Comparator}, or an empty {@code OptionalNullable}
+     * if the stream is empty.
+     * <p>
+     * Unlike {@link Stream#min(Comparator)}, this method can return an {@code OptionalNullable}
+     * containing a {@code null} value if {@code null} is determined to be the minimum element
+     * according to the comparator's null-handling strategy.
+     *
+     * @param <V> the type of stream elements
+     * @param stream the stream from which to find the minimum
+     * @param comparator a {@link Comparator} to compare elements of the stream
+     * @return an {@code OptionalNullable} describing the minimum element of the stream,
+     *         or an empty {@code OptionalNullable} if the stream is empty
+     * @throws NullPointerException if the stream or comparator is {@code null}
+     */
+    public static <V> OptionalNullable<V> min(Stream<? extends V> stream, Comparator<? super V> comparator) {
+        return stream.<OptionalNullable<V>>map(OptionalNullable::nullable).min(comparing(OptionalNullable::get, comparator))
+                .orElseGet(OptionalNullable::empty);
+    }
+
+    /**
+     * Return an {@code OptionalNullable} describing the maximum element of the given stream
+     * according to the provided {@link Comparator}, or an empty {@code OptionalNullable}
+     * if the stream is empty.
+     * <p>
+     * Unlike {@link Stream#max(Comparator)}, this method can return an {@code OptionalNullable}
+     * containing a {@code null} value if {@code null} is determined to be the maximum element
+     * according to the comparator's null-handling strategy.
+     *
+     * @param <V> the type of stream elements
+     * @param stream the stream from which to find the maximum
+     * @param comparator a {@link Comparator} to compare elements of the stream
+     * @return an {@code OptionalNullable} describing the maximum element of the stream,
+     *         or an empty {@code OptionalNullable} if the stream is empty
+     * @throws NullPointerException if the stream or comparator is {@code null}
+     */
+    public static <V> OptionalNullable<V> max(Stream<? extends V> stream, Comparator<? super V> comparator) {
+        return stream.<OptionalNullable<V>>map(OptionalNullable::nullable).max(comparing(OptionalNullable::get, comparator))
+                .orElseGet(OptionalNullable::empty);
+    }
+
+    /**
+     * Perform a reduction on the elements of the given stream, using the provided
+     * binary operator, and return an {@code OptionalNullable} describing the reduced value,
+     * or an empty {@code OptionalNullable} if the stream is empty.
+     * <p>
+     * Unlike {@link Stream#reduce(BinaryOperator)}, this method can return an
+     * {@code OptionalNullable} containing a {@code null} value if the reduction process
+     * produces {@code null} as the result.
+     *
+     * @param <V> the type of stream elements
+     * @param stream the stream to reduce
+     * @param accumulator an associative, non-interfering, stateless binary operator for
+     *                   combining stream elements
+     * @return an {@code OptionalNullable} describing the result of the reduction,
+     *         or an empty {@code OptionalNullable} if the stream is empty
+     * @throws NullPointerException if the stream or accumulator is {@code null}
+     */
+    public static <V> OptionalNullable<V> reduce(Stream<? extends V> stream, BiFunction<? super V, ? super V, ? extends V> accumulator) {
+        return stream.<OptionalNullable<V>>map(OptionalNullable::nullable).reduce((opt1, opt2) ->
+                        OptionalNullable.nullable(accumulator.apply(opt1.get(), opt2.get())))
+                .orElseGet(OptionalNullable::empty);
+    }
+
+    /**
+     * Perform a mutable reduction operation on the elements of the given stream using a
+     * {@link Collector} that produces an {@link Optional} result, and return an
+     * {@code OptionalNullable} that preserves the distinction between "no result found"
+     * and "null result found".
+     * <p>
+     * This method enhances collectors that return {@code Optional<V>} by tracking whether
+     * any elements were processed during the collection. This allows distinguishing between:
+     * <ul>
+     *   <li>An empty stream (no elements to process) → {@code OptionalNullable.empty()}</li>
+     *   <li>A stream with elements but no result found → {@code OptionalNullable.nullable()}</li>
+     *   <li>A stream with elements and a result found → {@code OptionalNullable.nullable(result)}</li>
+     * </ul>
+     *
+     * @param <V> the type of input elements and the result
+     * @param <A> the intermediate accumulation type of the {@code Collector}
+     * @param stream the stream to collect from
+     * @param collector a {@code Collector} that produces an {@code Optional} result
+     * @return an {@code OptionalNullable} preserving the collection result and element presence information
+     * @throws NullPointerException if the stream or collector is {@code null}
+     */
+    public static <V, A> OptionalNullable<V> collect(Stream<? extends V> stream, Collector<? super V, A, Optional<V>> collector) {
+
+        abstract class Accumulation { final A accumulation;
+            Accumulation(A accumulation) {this.accumulation = accumulation; }
+            abstract void present();
+            abstract boolean isPresent();
+        }
+
+        class VariableAccumulation extends Accumulation { boolean present;
+            VariableAccumulation(A accumulation, boolean present) {
+                super(accumulation); this.present = present; }
+            @Override void present() { present = true; }
+            @Override public boolean isPresent() { return present; }
+        }
+
+        class VolatileAccumulation extends Accumulation { volatile boolean present;
+            VolatileAccumulation(A accumulation, boolean present) {
+                super(accumulation); this.present = present; }
+            @Override void present() { present = true; }
+            @Override public boolean isPresent() { return present; }
+        }
+
+        BiFunction<A, Boolean, Accumulation> accumulationFactory = collector.characteristics().contains(CONCURRENT) && stream.isParallel()
+                ? VolatileAccumulation::new : VariableAccumulation::new;
+
+        return stream.collect(new Collector<V, Accumulation, OptionalNullable<V>>() {
+
+            @Override public Supplier<Accumulation> supplier() {
+                Supplier<A> supplier = collector.supplier(); return () -> accumulationFactory.apply(supplier.get(), false); }
+
+            @Override public BiConsumer<Accumulation, V> accumulator() {
+                BiConsumer<A, ? super V> accumulator = collector.accumulator(); return (accumulation, v) -> {
+                    accumulation.present(); accumulator.accept(accumulation.accumulation, v);
+                }; }
+
+            @Override public BinaryOperator<Accumulation> combiner() {
+                BinaryOperator<A> combiner = collector.combiner(); return (a1, a2) ->
+                        accumulationFactory.apply(combiner.apply(a1.accumulation, a2.accumulation), a1.isPresent() || a2.isPresent()); }
+
+            @Override public Function<Accumulation, OptionalNullable<V>> finisher() {
+                Function<A, Optional<V>> finisher = collector.finisher(); return accumulation ->
+                        finisher.apply(accumulation.accumulation).map(OptionalNullable::nullable)
+                                .orElseGet(() -> new OptionalNullable<>(accumulation.isPresent())); }
+
+            @Override public Set<Characteristics> characteristics() {
+                return collector.characteristics(); }
+        });
     }
 }

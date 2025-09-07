@@ -537,8 +537,8 @@ public final class OptionalNullable<V> {
                         accumulationFactory.apply(supplier.get(), false); }
 
             @Override public BiConsumer<Accumulation, V> accumulator() {
-                BiConsumer<A, ? super V> accumulator = collector.accumulator(); return (accumulation, v) ->
-                        accumulator.accept(accumulation.present().accumulation, v); }
+                BiConsumer<A, ? super V> accumulator = collector.accumulator(); return (accumulation, value) ->
+                        accumulator.accept(accumulation.present().accumulation, value); }
 
             @Override public BinaryOperator<Accumulation> combiner() {
                 BinaryOperator<A> combiner = collector.combiner(); return (accumulation1, accumulation2) ->

@@ -478,6 +478,33 @@ public final class OptionalNullable<V> {
      * @throws NullPointerException if the stream or collector is {@code null}
      */
     public static <V, A> OptionalNullable<V> collect(Stream<? extends V> stream, Collector<? super V, A, Optional<V>> collector) {
+        return stream.collect(collector(collector));
+    }
+
+    /**
+     * Return a {@code Collector} that adapts an existing {@code Optional}-producing collector
+     * to produce {@code OptionalNullable} results with enhanced null-handling capabilities.
+     * <p>
+     * This method transforms a {@code Collector<T, A, Optional<T>>} into a
+     * {@code Collector<T, ?, OptionalNullable<T>>} that preserves the distinction between:
+     * <ul>
+     *   <li>No elements processed (empty stream) → {@code OptionalNullable.empty()}</li>
+     *   <li>Elements processed but collector found no result → {@code OptionalNullable.nullable()}</li>
+     *   <li>Elements processed and collector found a result → {@code OptionalNullable.nullable(result)}</li>
+     * </ul>
+     *
+     * <p>The returned collector maintains the same characteristics as the original collector,
+     * including thread-safety behavior for parallel streams. For {@link Collector.Characteristics#CONCURRENT}
+     * collectors, thread-safe presence tracking is automatically used.
+     *
+     * @param <V> the type of input elements to the collector
+     * @param <A> the intermediate accumulation type of the original collector
+     * @param collector the original collector that produces {@code Optional} results
+     * @return a new {@code Collector} that produces {@code OptionalNullable} results with
+     *         enhanced null-handling and element presence tracking
+     * @throws NullPointerException if the collector is {@code null}
+     */
+    public static <V, A> Collector<V, ?, OptionalNullable<V>> collector(Collector<? super V, A, Optional<V>> collector) {
 
         abstract class Accumulation { final A accumulation;
             Accumulation(A accumulation) {this.accumulation = accumulation; }
@@ -499,10 +526,10 @@ public final class OptionalNullable<V> {
             @Override public boolean isPresent() { return present; }
         }
 
-        BiFunction<A, Boolean, Accumulation> accumulationFactory = collector.characteristics().contains(CONCURRENT) && stream.isParallel()
-                ? VolatileAccumulation::new : VariableAccumulation::new;
+        return new Collector<V, Accumulation, OptionalNullable<V>>() {
 
-        return stream.collect(new Collector<V, Accumulation, OptionalNullable<V>>() {
+            final BiFunction<A, Boolean, Accumulation> accumulationFactory = collector.characteristics().contains(CONCURRENT)
+                    ? VolatileAccumulation::new : VariableAccumulation::new;
 
             @Override public Supplier<Accumulation> supplier() {
                 Supplier<A> supplier = collector.supplier(); return () -> accumulationFactory.apply(supplier.get(), false); }
@@ -522,6 +549,6 @@ public final class OptionalNullable<V> {
 
             @Override public Set<Characteristics> characteristics() {
                 return collector.characteristics(); }
-        });
+        };
     }
 }

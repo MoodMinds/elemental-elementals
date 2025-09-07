@@ -507,7 +507,8 @@ public final class OptionalNullable<V> {
     public static <V, A> Collector<V, ?, OptionalNullable<V>> collector(Collector<? super V, A, Optional<V>> collector) {
 
         abstract class Accumulation { final A accumulation;
-            Accumulation(A accumulation) {this.accumulation = accumulation; }
+            Accumulation(A accumulation) {
+                this.accumulation = accumulation; }
             abstract Accumulation present();
             abstract boolean isPresent();
         }

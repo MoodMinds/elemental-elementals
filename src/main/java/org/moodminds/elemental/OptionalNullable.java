@@ -529,7 +529,7 @@ public final class OptionalNullable<V> {
 
         return new Collector<V, Accumulation, OptionalNullable<V>>() {
 
-            final BiFunction<A, Boolean, Accumulation> accumulationFactory = collector.characteristics().contains(CONCURRENT)
+            final BiFunction<A, Boolean, Accumulation> accumulationFactory = characteristics().contains(CONCURRENT)
                     ? VolatileAccumulation::new : VariableAccumulation::new;
 
             @Override public Supplier<Accumulation> supplier() {

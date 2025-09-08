@@ -532,23 +532,20 @@ public final class OptionalNullable<V> {
             final BiFunction<A, Boolean, Accumulation> accumulationFactory = characteristics().contains(CONCURRENT)
                     ? VolatileAccumulation::new : VariableAccumulation::new;
 
-            @Override public Supplier<Accumulation> supplier() {
-                Supplier<A> supplier = collector.supplier(); return () ->
-                        accumulationFactory.apply(supplier.get(), false); }
+            @Override public Supplier<Accumulation> supplier() { Supplier<A> supplier = collector.supplier();
+                return () -> accumulationFactory.apply(supplier.get(), false); }
 
-            @Override public BiConsumer<Accumulation, V> accumulator() {
-                BiConsumer<A, ? super V> accumulator = collector.accumulator(); return (accumulation, value) ->
-                        accumulator.accept(accumulation.present().accumulation, value); }
+            @Override public BiConsumer<Accumulation, V> accumulator() { BiConsumer<A, ? super V> accumulator = collector.accumulator();
+                return (accumulation, value) -> accumulator.accept(accumulation.present().accumulation, value); }
 
-            @Override public BinaryOperator<Accumulation> combiner() {
-                BinaryOperator<A> combiner = collector.combiner(); return (accumulation1, accumulation2) ->
-                        accumulationFactory.apply(combiner.apply(accumulation1.accumulation, accumulation2.accumulation),
-                                accumulation1.isPresent() || accumulation2.isPresent()); }
+            @Override public BinaryOperator<Accumulation> combiner() { BinaryOperator<A> combiner = collector.combiner();
+                return (accumulation1, accumulation2) -> accumulationFactory.apply(combiner.apply(
+                        accumulation1.accumulation, accumulation2.accumulation),
+                        accumulation1.isPresent() || accumulation2.isPresent()); }
 
-            @Override public Function<Accumulation, OptionalNullable<V>> finisher() {
-                Function<A, Optional<V>> finisher = collector.finisher(); return accumulation ->
-                        finisher.apply(accumulation.accumulation).map(OptionalNullable::nullable)
-                                .orElseGet(() -> new OptionalNullable<>(accumulation.isPresent())); }
+            @Override public Function<Accumulation, OptionalNullable<V>> finisher() { Function<A, Optional<V>> finisher = collector.finisher();
+                return accumulation -> finisher.apply(accumulation.accumulation).map(OptionalNullable::nullable)
+                        .orElse(accumulation.isPresent() ? nullable() : empty()); }
 
             @Override public Set<Characteristics> characteristics() {
                 return collector.characteristics(); }
